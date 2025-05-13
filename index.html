@@ -9,14 +9,19 @@
       // 注册你的 worker
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js', {
+          navigator.serviceWorker.register('./service-worker.js', {
             /**
              scope参数是可选的, 用来指定你想要 service worker 控制的子作用域;
              '/' 表示 app 的源（origin）下的所有内容
             */
             scope: "/", 
             
+          }).then(registration => {
+            console.log('Service Worker registered with scope:', registration.scope);
           })
+          .catch(error => {
+            console.error('Service Worker registration failed:', error);
+          });
         })
       }
     </script>
