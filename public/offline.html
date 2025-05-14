@@ -1,15 +1,32 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>离线提示</title>
-  <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 20vh; }
-    h1 { color: #e57373; }
-  </style>
+    <title>离线模式</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        h1 {
+            color: #666;
+        }
+        .offline-image {
+            width: 150px;
+            margin: 20px 0;
+        }
+    </style>
 </head>
 <body>
-  <h1>您已离线</h1>
-  <p>当前网络不可用，请检查您的网络连接。</p>
+    <h1>您当前处于离线状态</h1>
+    <img src="/images/offline-icon.png" alt="Offline" class="offline-image">
+    <p>网络恢复后，内容将自动更新</p>
+    <button id="reload-button">重试连接</button>
+    
+    <script>
+        document.getElementById('reload-button').addEventListener('click', () => {
+            window.location.reload();
+        });
+    </script>
 </body>
 </html>

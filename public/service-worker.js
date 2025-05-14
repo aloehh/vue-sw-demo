@@ -28,26 +28,66 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
       )
-    })
+    }).then(() => self.clients.claim()) // 立即控制所有客户端
   )
 })
 
 // fetch 事件：拦截请求，优先返回缓存内容
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request).then(response => {
-      console.log(111, response)
-      // 如果缓存中有匹配的资源，则直接返回
-      if (response) return response;
-      // 否则尝试从网络获取
-      return fetch(event.request).catch(() => {
-        console.log(222, event.request.mode)
+  // 忽略非 GET 请求和 chrome-extension 请求
+  if (event.request.method !== 'GET' || 
+    event.request.url.startsWith('chrome-extension')) {
+    return;
+  }
 
-        // 其他资源断网时可返回自定义离线页面
-        if (event.request.mode === 'navigate') {
-          return caches.match('/offline.html');
+  event.respondWith(
+    // 首先尝试从缓存获取
+    caches.match(event.request)
+      .then(response => {
+        console.log('Fetching from cache111:', response);
+        // 缓存命中 - 返回缓存内容
+        if (response) {
+          return response;
         }
+
+      // 对于 HTML 页面，使用网络优先策略
+      if (event.request.headers.get('accept').includes('text/html')) {
+        return fetch(event.request)
+          .then(networkResponse => {
+            // 克隆响应以进行缓存
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME)
+              .then(cache => cache.put(event.request, responseToCache));
+            return networkResponse;
+          })
+          .catch(() => {
+            // 网络失败时返回离线页面
+            return caches.match('/offline.html');
+          });
+      }
+      // 对于其他资源，使用缓存优先策略
+      return fetch(event.request)
+      .then(networkResponse => {
+        // 动态缓存非预缓存资源
+        if (!networkResponse || 
+            networkResponse.status !== 200 ||
+            networkResponse.type !== 'basic') {
+          return networkResponse;
+        }
+
+        const responseToCache = networkResponse.clone();
+        caches.open(CACHE_NAME)
+          .then(cache => cache.put(event.request, responseToCache));
+
+        return networkResponse;
+      })
+      .catch(() => {
+        // 可以返回回退资源或空响应
+        return new Response('', { 
+          status: 408, 
+          statusText: 'Offline' 
+        });
       });
     })
-  );
+  )
 });
